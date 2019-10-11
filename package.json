@@ -1,6 +1,6 @@
 {
   "name": "appoptics-apm",
-  "version": "6.6.0",
+  "version": "6.6.0-memory-play",
   "description": "Agent for AppOptics APM",
   "main": "lib/index.js",
   "bin": {
