@@ -101,12 +101,12 @@
     "should": "^8.3.1",
     "supertest": "^3.4.2",
     "tedious": "^4.2.0",
-    "testeachversion": "^8.2.0",
+    "testeachversion": "^8.4.0",
     "vision": "^5.4.4",
     "winston": "^3.2.1",
     "winston-transport": "^4.3.0"
   },
   "optionalDependencies": {
-    "appoptics-bindings": "^7.1.0"
+    "appoptics-bindings": "https://api.github.com/repos/appoptics/appoptics-bindings-node/tarball/loader-play"
   }
 }
