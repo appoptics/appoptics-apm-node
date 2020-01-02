@@ -1,41 +1,38 @@
-var helper = require('./helper')
-var ao = helper.ao
-var Span = ao.Span
+'use strict';
 
-suite('basics', function () {
-  bench('set trace mode', function () {
-    ao.sampleMode = ao.addon.TRACE_ALWAYS
+/* eslint-disable no-console */
+
+const ao = require('..');
+// wait 2 seconds to make sure it's ready.
+ao.readyToSample(2000);
+
+const Benchmark = require('benchmark');
+
+const suite = new Benchmark.Suite({name: 'initial'});
+
+suite
+  .add('detect if tracing', function () {
+    ao.tracing;
+  })
+  .add('set trace mode as a number', function () {
+    ao.traceMode = 1;
+  })
+  .add('set trace mode as a string', function () {
+    ao.traceMode = 'always';
+  })
+  .add('set sample rate', function () {
+    ao.sampleRate = 100;
+  })
+  .add('get settings for a trace', function () {
+    ao.getTraceSettings('');
   })
 
-  bench('set trace mode as string', function () {
-    ao.sampleMode = 'always'
+  .on('complete', function () {
+    console.log(this.name);
+    for (let i = 0; i < this.length; i++) {
+      const t = this[i];
+      console.log(t.name, t.stats.mean, t.count, t.times.elapsed);
+    }
   })
 
-  bench('set sample rate', function () {
-    ao.sampleRate = 100
-  })
-
-  bench('set sample source', function () {
-    ao.sampleSource = 100
-  })
-
-  bench('check if in "always" trace mode', function () {
-    ao.always
-  })
-
-  bench('check if in "never" trace mode', function () {
-    ao.never
-  })
-
-  bench('check if in "through" trace mode', function () {
-    ao.through
-  })
-
-  bench('detect if it is in a trace', function () {
-    ao.tracing
-  })
-
-  bench('sample', function () {
-    ao.sample('test')
-  })
-})
+  .run();
