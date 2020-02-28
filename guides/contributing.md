@@ -41,11 +41,12 @@ test/probes/        # tests for probes
 
 ## Testing
 
-mocha is not a devDependency because mocha is a installed globally in our
-development environment.
+mocha and tap are installed globally; they are not devDependencies of the agent. If
+you don't have them installed globally then you'll need to add them as devDepencies.
 
-Under the `test` directory all test files end with `.test.js`. Other files
-are support files for testing and are not to be executed by mocha.
+Under the `test` directory all test files end with either `.test.js` (`mocha`) or
+`.tap.js` (`tap`). Other files are support files for testing and should not be directly
+executed by `mocha` or `tap`.
 
 Testing the probes requires that `docker-compose up -d` has been executed to
 start back-end services. You can use `env.sh` enables setting up the environment

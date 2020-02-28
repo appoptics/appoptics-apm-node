@@ -33,7 +33,6 @@ const options = p === 'https' ? httpsOptions : {};
 
 describe(`probes.${p} websocket`, function () {
   let emitter
-  let realSampleTrace
   const previousHttpEnabled = ao.probes[p].enabled;
   const previousHttpClientEnabled = ao.probes[`${p}-client`].enabled;
   let clear
@@ -48,20 +47,16 @@ describe(`probes.${p} websocket`, function () {
   before(function (done) {
     ao.sampleRate = addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
     ao.g.testing(__filename)
     // intercept message for analysis
     emitter = helper.appoptics(done);
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
   after(function () {
-    ao.loggers.debug(`enters ${ao.Span.entrySpanEnters} exits ${ao.Span.entrySpanExits}`)
+    const {spansTopSpanEnters, spansTopSpanExits} = ao.Span.getMetrics();
+    ao.loggers.debug(`enters ${spansTopSpanEnters} exits ${spansTopSpanExits}`);
   })
 
   //
@@ -162,7 +157,7 @@ describe(`probes.${p} websocket`, function () {
     const conf = ao.probes[p];
 
     after(function () {
-      ao.resetRequestStore();
+      ao.resetTContext();
     });
 
     // it's possible for a local UDP send to fail but oboe doesn't report

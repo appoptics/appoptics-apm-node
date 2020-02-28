@@ -38,6 +38,9 @@ It's typically easiest to work at the bash shell and test against docker contain
 that the rest of this document focuses on. If you are not running linux then you can't install/build
 appoptics-bindings, a dependency. Refer to `test/docker/mac-os-test-env` for details on using a mac.
 
+**Important** because `mocha` and `tap` are such large packages they are installed globally in the
+development environment and aren't in `package.json`'s devDependencies.
+
 ## Testing
 
 ### Running the basic test suite

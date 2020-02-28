@@ -36,7 +36,7 @@ The span-info function's signature is `span-info ()` and it returns an object wi
 
 
 ```js
-let span
+let span;
 
 function spanInfo () {
   return {
@@ -50,7 +50,7 @@ function spanInfo () {
       // there is no need to add execution-time KVs to the span
       // then this may be omitted.
       finalize (createdSpan) {
-        span = createdSpan
+        span = createdSpan;
       }
   }
 }
@@ -67,7 +67,7 @@ For a sync call it has no arguments.
 
 ```js
 function syncRunner () {
-  return yourFunctionToInstrument(your, args, go, here)
+  return yourFunctionToInstrument(your, args, go, here);
 }
 ```
 
@@ -79,7 +79,7 @@ be called after the instrumentation function has completed its work.
 
 ```js
 function asyncRunner (done) {
-  return yourFunctionToInstrument(your, args, go, here, done)
+  return yourFunctionToInstrument(your, args, go, here, done);
 }
 ```
 
@@ -112,9 +112,9 @@ it'd look something like this:
 ```js
 shimmer.wrap(abc, 'xyz', xyz => {
   return function (n, cb) {
-    const spanInfoMaker = () => return {name: 'awesome-span', kvpairs: {n: n}}
-    const runner = done => xyz.call(this, n, done)
-    return ao.instrument(spanInfoMaker, runner, {enabled: true}, cb)
+    const spanInfoMaker = () => return {name: 'awesome-span', kvpairs: {n: n}};
+    const runner = done => xyz.call(this, n, done);
+    return ao.instrument(spanInfoMaker, runner, {enabled: true}, cb);
   }
 })
 ```
@@ -140,48 +140,47 @@ http.createServer((req, res) => {
 Sometimes `ao.instrument(...)` or `ao.instrumentHttp(...)` don't quite fit
 what is needed for a given patch. For these situations, you can drop down to
 the lower-level API. Those other functions are really just sugar over the
-`Span`	class. The current span reference you'd expect can be acquired via
-`ao.Span.last` and, as usual, you can call the `last.descend(...)` function
-on that. The runner part is encapsulated by `span.runSync(fn)` and `span.runAsync(fn)`,
-with a function length based sugar wrapper around both of those at `span.run(fn)`.
-When using the `Span` class, you will need to call both the run callback and
-the callback for the instrumented function itself separately.
+`Span`	class. The current span reference can be acquired via `ao.lastSpan`
+and you can call the `descend(...)` function on that. The runner part is
+encapsulated by `span.runSync(fn)` and `span.runAsync(fn)`, with a function-length
+based sugar wrapper around both of those at `span.run(fn)`. When using the `Span`
+class, you will need to call both the run callback and the callback for the
+instrumented function itself separately.
 
 ```js
-const last = ao.Span.last
+const last = ao.lastSpan;
 const span = last.descend('abc', {
   foo: 'bar'
 })
 span.runSync(() => {
-  console.log('doing some stuff')
+  console.log('doing some stuff');
 })
 ```
 
-If creating an entry span, i.e., a span when there is no `Span.last`, the
+If creating an entry span, i.e., a span when there is no `ao.lastSpan`, the
 static class function `Span.makeEntrySpan()` is available. The kvpairs are
 an optional object of KVs to be attached to the span entry event.
 
 ```js
-const settings = ao.getTraceSettings()
-const span = Span.makeEntrySpan('my-span', settings, kvpairs)
+const settings = ao.getTraceSettings();
+const span = Span.makeEntrySpan('my-span', settings, kvpairs);
 ```
 
 
 ### Starting or continuing a trace
 
-The API methods demonstrated so far have all been geared toward use when a
-trace is already in progress. When you aren't in a trace already, you might
-need to start a fresh one. For this purpose, there is the
+The API methods so far, except for `makeEntrySpan()`, have all been geared
+toward use when a trace is already in progress. When you aren't in a trace
+already, you might need to start a fresh one. For this purpose, there is the
 `ao.startOrContinueTrace(...)` function. The signature is almost identical
-to `ao.instrument(...)` with the exception that it has an additional
-optional xtrace argument at the beginning to provide the id of a trace to
-continue from.
+to `ao.instrument(...)` with the exception that it has an optional xtrace
+argument at the beginning to provide the id of a trace to continue from.
 
 ```js
 ao.startOrContinueTrace(headers['X-Trace'], 'abc', done => {
-  return setImmediate(done, a, b, c)
+  return setImmediate(done, a, b, c);
 }, (a, b, c) => {
-  console.log('called from setImmediate with:', a, b, c)
+  console.log('called from setImmediate with:', a, b, c);
 })
 ```
 
@@ -194,71 +193,73 @@ Info and error events are simply inserted into the current span and can be
 created with the `ao.reportInfo(...)` and `ao.reportError(...)` functions.
 
 ```js
-ao.reportInfo({ foo: 'bar' })
-ao.reportError(new Error('some error'))
-ao.reportError('a string error')
+ao.reportInfo({ foo: 'bar' });
+ao.reportError(new Error('some error'));
+ao.reportError('a string error');
 ```
 
 ## Context management
 
-The agent propagates context storage alongside the code tree, to allow you to
-store useful information about the state of things. Mostly it is used for
-tracking past events to connect edges to.
+The agent propagates context alongside the execution flow. The context is
+used to keep track of the state of the trace: the current span, the last
+event sent, etc.
 
 ### Accessing the context
 
 The context is available as an object with `get(key)` and `set(key, value)`
-methods at `ao.requestStore`. You can store whatever data you need in the store,
-but it is *only* available within the specific branch of the continuation in
-which the data was set. The continuation tracking begins when a call is made to
-`ao.requestStore.run(functionToRunInContext)`.
+methods on `ao.tContext`. You can store whatever data you need in the store,
+but it is *only* available within the chain of synchronous and asynchrous
+calls in which the data was set. The asynchronous context tracking begins
+when a call is made to `ao.tContext.run(functionToRunInContext)`.
+
+Note that any keys beginning with `ao.` as well as the keys `lastEvent`,
+`lastSpan`, and `topLevel` are reserved.
 
 ```js
-ao.requestStore.run(function () {
-  ao.requestStore.set('foo', 'bar')
-  var called = false
+ao.tContext.run(function () {
+  ao.tContext.set('foo', 'bar');
+  var called = false;
 
   setImmediate(function () {
-    assert('bar', ao.requestStore.get('foo'))
-    ao.requestStore.set('baz', 'buz')
-    called = true
+    assert('bar', ao.tContext.get('foo'));
+    ao.tContext.set('baz', 'buz');
+    called = true;
 
-    setImmediate(after)
+    setImmediate(after);
   })
 
   function after () {
-    assert('buz', ao.requestStore.get('baz'))
+    assert('buz', ao.tContext.get('baz'));
   }
 
   setTimeout(function () {
-    assert('bar', ao.requestStore.get('foo'))
-    assert(null, ao.requestStore.get('baz'))
-    assert(called, true)
+    assert('bar', ao.tContext.get('foo'));
+    assert(null, ao.tContext.get('baz'));
+    assert(called, true);
   })
 })
 ```
 
-### Maintaining continuation
+### Maintaining context
 
 Unfortunately, due to the interleaving of requests caused by the event loop,
 asynchronous boundaries must be linked together manually to keep track of
-the code continuation of a given request call graph. Much of this is handled
-automatically by the `async-listener` module, which is a dependency of
-`continuation-local-storage`. However, there are sometimes instances of
-user-mode queueing, like connection pools, which interfere with context
-continuation. For this reason, it is sometimes necessary to use `ao.bind(...)`
-and `ao.bindEmitter(...)` to bind callbacks and event emitters to the
-context at the point which they are wrapped with.
+the asynchronous context of a call graph. Much of this is handled automatically
+by the `ace-context` module but there are sometimes instances of user-mode
+queueing, like connection pools, which interfere with context tracking. For
+this reason, it is sometimes necessary to use `ao.bind(...)` and
+`ao.bindEmitter(...)` to bind callbacks and event emitters to the context at
+the point which they are defined.
 
 ```js
-ao.bindEmitter(request)
-ao.bindEmitter(response)
+ao.bindEmitter(request);
+ao.bindEmitter(response);
 
-ao.requestStore.set('it works', true)
+ao.tContext.set('it works', true);
 
 someAsyncThing(ao.bind(function () {
   res.on('end', function () {
-    assert(true, ao.requestStore.get('it works'))
+    assert(true, ao.tContext.get('it works'));
   })
 }))
 ```
@@ -283,6 +284,9 @@ module.exports = function (abc, options) {
 }
 ```
 
+If you have a specific package you'd like help with let us know; we're happy
+to help.
+
 ## Wrapping functions
 
 To collect the performance data of a given function, we'll need to wrap it
@@ -299,11 +303,11 @@ the call of the stored function.
 ```js
 shimmer.wrap(abc, 'xyz', xyz => {
   return function () {
-    const before = Date.now()
-    const returnValue = xyz.apply(this, arguments)
-    const after = Date.now()
-    console.log(`xyz took ${after - before}ms`)
-    return returnValue
+    const before = Date.now();
+    const returnValue = xyz.apply(this, arguments);
+    const after = Date.now();
+    console.log(`xyz took ${after - before}ms`);
+    return returnValue;
   }
 })
 ```
@@ -316,13 +320,13 @@ arguments and wrap that too, so you can inject the second part.
 ```js
 shimmer.wrap(abc, 'xyz', xyz => {
   return function w(n, trueCb) {
-    const before = Date.now()
+    const before = Date.now();
     function cb () {
-      const after = Date.now()
-      console.log(`xyz took ${after - before}ms`)
-      return trueCb.apply(this, arguments)
+      const after = Date.now();
+      console.log(`xyz took ${after - before}ms`);
+      return trueCb.apply(this, arguments);
     }
-    return xyz.call(this, n, cb)
+    return xyz.call(this, n, cb);
   }
 })
 ```

@@ -119,7 +119,7 @@ class TestStream extends EventEmitter {
 // get a trace string via a different function than the logging insertion uses.
 //
 function getTraceIdString () {
-  const firstEvent = ao.requestStore.get('topSpan').events.entry.event;
+  const firstEvent = ao.tContext.get('topSpan').events.entry;
   // 2 task, 16 sample bit, 32 separators
   return firstEvent.toString(2 | 16 | 32);
 }
@@ -275,7 +275,7 @@ describe(`bunyan v${version}`, function () {
         return 'test-done';
       }
 
-      const xtrace = ao.addon.Metadata.makeRandom(0).toString()
+      const xtrace = ao.MB.makeRandom(0).toString()
       const result = ao.startOrContinueTrace(xtrace, spanName, test);
 
       expect(result).equal('test-done');
@@ -286,7 +286,7 @@ describe(`bunyan v${version}`, function () {
   it('mode=\'always\' should always insert a trace ID even if not tracing', function () {
     const level = 'info';
     const message = 'always insert';
-    ao.Event.last = undefined;
+    ao.lastEvent = undefined;
 
     ao.cfg.insertTraceIdsIntoLogs = 'always';
 

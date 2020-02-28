@@ -27,13 +27,13 @@ if (!ao.g.taskDict) {
 function startTest (file, options = {}) {
   ao.g.current = file.slice(file.lastIndexOf('/') + 1)
   ao.loggers.test.info('starting test: ', file)
-  ao.loggers.test.cls(`entering ${ao.g.current}: %c`, ao.requestStore)
+  ao.loggers.test.cls(`entering ${ao.g.current}: %c`, ao.tContext)
 
   applyOptions(options)
 }
 
 function endTest (options = {}) {
-  ao.loggers.test.cls(`exiting ${ao.g.current}: %c`, ao.requestStore)
+  ao.loggers.test.cls(`exiting ${ao.g.current}: %c`, ao.tContext)
 
   applyOptions(options)
 }
@@ -45,7 +45,7 @@ const debugOptions = {
 
 function applyOptions (options) {
   // work when using standard cls-hooked.
-  if (!ao.requestStore.setDebugOptions) {
+  if (!ao.tContext.setDebugOptions) {
     return
   }
   // don't modify the caller's options object
@@ -58,7 +58,7 @@ function applyOptions (options) {
 
     opts = Object.assign({}, debugOptions, opts)
   }
-  ao.requestStore.setDebugOptions(opts)
+  ao.tContext.setDebugOptions(opts)
 }
 
 const formatters = {

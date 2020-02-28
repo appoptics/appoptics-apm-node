@@ -8,6 +8,9 @@
 # some tests do load the addon.
 #
 
+# low-level unit tests
+tap test/*.tap.js
+
 #
 # run unit tests with and without the addon enabled
 #

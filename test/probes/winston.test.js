@@ -157,7 +157,7 @@ const makeHelperArgs = {
 
 
 function getTraceIdString () {
-  const topSpan = ao.requestStore.get('topSpan').events.entry.event;
+  const topSpan = ao.tContext.get('topSpan').events.entry;
   // 2 task, 16 sample bit, 32 separators
   return topSpan.toString(2 | 16 | 32);
 }
@@ -180,7 +180,7 @@ describe(`winston v${version}`, function () {
     ao.probes.fs.enabled = false;
     if (ao.lastEvent) {
       ao.loggers.debug(`resetting request store due to ${ao.lastEvent}`);
-      ao.resetRequestStore();
+      ao.resetTContext();
     }
   })
 
@@ -292,7 +292,7 @@ describe(`winston v${version}`, function () {
         return 'test-done';
       }
 
-      const xtrace = ao.addon.Metadata.makeRandom(0).toString()
+      const xtrace = ao.MB.makeRandom(0).toString()
       const result = ao.startOrContinueTrace(xtrace, spanName, test);
 
       expect(result).equal('test-done');

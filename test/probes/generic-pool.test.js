@@ -74,7 +74,7 @@ describe(`probes.generic-pool ${pkg.version}`, function () {
   })
 
   after(function () {
-    ao.resetRequestStore();
+    ao.resetTContext();
   })
 
   ifv2('should trace through generic-pool acquire for versions < 3', function (testDone) {
@@ -93,7 +93,7 @@ describe(`probes.generic-pool ${pkg.version}`, function () {
       const span = ao.lastEvent.Layer
       const taskId = ao.lastEvent.taskId
       expect(taskId).exist;
-      ao.requestStore.set('key', span)
+      ao.tContext.set('key', span)
 
       pool.acquire(function (err, resource) {
         if (err) {
@@ -127,7 +127,7 @@ describe(`probes.generic-pool ${pkg.version}`, function () {
         }
         gpDebug('%s acquired %o for %e', span, resource, ao.lastEvent)
 
-        expect(ao.requestStore.get('key')).equal(span);
+        expect(ao.tContext.get('key')).equal(span);
         expect(ao.lastEvent, 'context when acquiring').exist;
         expect(ao.lastEvent).property('Layer', span);
         expect(ao.lastEvent).property('taskId', taskId);
@@ -194,7 +194,7 @@ describe(`probes.generic-pool ${pkg.version}`, function () {
       const span = ao.lastEvent.Layer
       const taskId = ao.lastEvent.taskId
       expect(taskId).exist;
-      ao.requestStore.set('key', span)
+      ao.tContext.set('key', span)
 
       // acquire an entry in the pool and release it after an event loop interval.
       // this causes the the 'generic-pool-1' span to acquire both resources from the
@@ -240,7 +240,7 @@ describe(`probes.generic-pool ${pkg.version}`, function () {
       acquire().then(function (resource) {
         gpDebug('%s acquired %o for %e', span, resource, ao.lastEvent)
 
-        expect(ao.requestStore.get('key')).equal(span);
+        expect(ao.tContext.get('key')).equal(span);
         expect(ao.lastEvent).exist;
         expect(ao.lastEvent).property('Layer', span);
         expect(ao.lastEvent).property('taskId', taskId);

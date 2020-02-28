@@ -82,8 +82,8 @@ describe('basics', function () {
   })
 
   ifaob('should be able to check metadata\'s sample flag', function () {
-    const md0 = new ao.addon.Metadata.makeRandom()
-    const md1 = new ao.addon.Metadata.makeRandom(1)
+    const md0 = new ao.MB.makeRandom()
+    const md1 = new ao.MB.makeRandom(1)
 
     expect(ao.sampling(md0)).equal(false)
     expect(ao.sampling(md0.toString())).equal(false)

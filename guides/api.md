@@ -36,6 +36,8 @@
     * [.traceMode](#ao.traceMode)
     * [.tracing](#ao.tracing)
     * [.traceId](#ao.traceId)
+    * [.lastEvent](#ao.lastEvent)
+    * [.lastSpan](#ao.lastSpan)
     * [.logLevelAdd(levels)](#ao.logLevelAdd) ⇒ <code>string</code> \| <code>undefined</code>
     * [.logLevelRemove(levels)](#ao.logLevelRemove) ⇒ <code>string</code> \| <code>undefined</code>
     * [.backtrace()](#ao.backtrace) ⇒ <code>string</code>
@@ -44,7 +46,7 @@
     * [.setCustomTxNameFunction(probe, fn)](#ao.setCustomTxNameFunction) ⇒ <code>boolean</code>
     * [.readyToSample(ms, [obj])](#ao.readyToSample) ⇒ <code>boolean</code>
     * [.sampling(item)](#ao.sampling) ⇒ <code>boolean</code>
-    * [.stringToMetadata(xtrace)](#ao.stringToMetadata) ⇒ <code>bindings.Metadata</code> \| <code>undefined</code>
+    * [.stringToMetadata(xtrace)](#ao.stringToMetadata) ⇒ <code>Metabuf</code> \| <code>null</code>
     * [.instrumentHttp(span, run, [options], res)](#ao.instrumentHttp) ⇒
     * [.instrument(span, run, [options], [callback])](#ao.instrument) ⇒ <code>value</code>
     * [.pInstrument(span, run, [options])](#ao.pInstrument) ⇒ <code>Promise</code>
@@ -135,6 +137,30 @@ Get X-Trace ID of the last event
 | Type | Description |
 | --- | --- |
 | <code>string</code> | the trace ID as a string or undefined if not tracing. |
+
+<a name="ao.lastEvent"></a>
+
+### ao.lastEvent
+The last reported event in the active context
+
+**Kind**: static property of [<code>ao</code>](#ao)  
+**Properties**
+
+| Type | Description |
+| --- | --- |
+| [<code>Event</code>](#Event) | the last event sent in the active context. |
+
+<a name="ao.lastSpan"></a>
+
+### ao.lastSpan
+The last span that was entered in the active context
+
+**Kind**: static property of [<code>ao</code>](#ao)  
+**Properties**
+
+| Name | Type |
+| --- | --- |
+| ao.lastSpan | [<code>Span</code>](#Span) | 
 
 <a name="ao.logLevelAdd"></a>
 
@@ -248,16 +274,15 @@ metadata.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| item | <code>string</code> \| [<code>Event</code>](#Event) \| <code>Metadata</code> | the item to get the sampling flag of |
+| item | <code>string</code> \| [<code>Event</code>](#Event) \| <code>Metabuf</code> | the item to get the sampling flag of |
 
 <a name="ao.stringToMetadata"></a>
 
-### ao.stringToMetadata(xtrace) ⇒ <code>bindings.Metadata</code> \| <code>undefined</code>
-Convert an xtrace ID to a metadata object.
+### ao.stringToMetadata(xtrace) ⇒ <code>Metabuf</code> \| <code>null</code>
+Convert an xtrace ID to metadata in the form of Metabuf.
 
 **Kind**: static method of [<code>ao</code>](#ao)  
-**Returns**: <code>bindings.Metadata</code> \| <code>undefined</code> - - bindings.Metadata object if
-                                        successful.  
+**Returns**: <code>Metabuf</code> \| <code>null</code> - - Metabuf object if successful, else null.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -708,7 +733,7 @@ Create an execution span.
 
 **Example**  
 ```js
-var span = new Span('fs', Event.last, {
+var span = new Span('fs', ao.lastEvent, {
   File: file
 })
 ```
@@ -906,28 +931,38 @@ header was attached to an inbound HTTP/HTTPS request.
 
 * [Event](#Event)
     * [new Event(span, label, parent, edge)](#new_Event_new)
-    * [.set(data)](#Event+set)
+    * [.getSampleFlag()](#Event+getSampleFlag)
+    * [.addKVs(data)](#Event+addKVs)
     * [.enter()](#Event+enter)
     * [.toString()](#Event+toString)
-    * [.sendReport(data)](#Event+sendReport)
+    * [.send(data)](#Event+send)
 
 <a name="new_Event_new"></a>
 
 ### new Event(span, label, parent, edge)
 Create an event
 
+An event is agent metadata with all the KV pairs and edges for the event.
+
 
 | Param | Type | Description |
 | --- | --- | --- |
 | span | <code>string</code> | name of the event's span |
 | label | <code>string</code> | Event label (usually entry or exit) |
-| parent | <code>addon.Event</code> \| <code>addon.Metadata</code> | Metadata to construct the event from. |
-| edge | <code>boolean</code> | This should edge back to the parent |
+| parent | <code>Metabuf</code> | Metadata to use to construct the event. |
+| edge | <code>boolean</code> | Add an edge back to the parent. |
 
-<a name="Event+set"></a>
+<a name="Event+getSampleFlag"></a>
 
-### event.set(data)
-Set key-value pairs on this event
+### event.getSampleFlag()
+Get sample flag from the event. Compatibility function.
+
+**Kind**: instance method of [<code>Event</code>](#Event)  
+<a name="Event+addKVs"></a>
+
+### event.addKVs(data)
+Add key-value pairs to this event. They will be sent when the
+event is exited.
 
 **Kind**: instance method of [<code>Event</code>](#Event)  
 
@@ -947,9 +982,9 @@ Enter the context of this event
 Get the X-Trace ID string of the event
 
 **Kind**: instance method of [<code>Event</code>](#Event)  
-<a name="Event+sendReport"></a>
+<a name="Event+send"></a>
 
-### event.sendReport(data)
+### event.send(data)
 Send this event to the reporter
 
 **Kind**: instance method of [<code>Event</code>](#Event)  

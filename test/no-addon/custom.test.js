@@ -3,7 +3,6 @@
 process.env.AO_TEST_NO_BINDINGS = '1';
 
 const ao = require('../..');
-const aob = ao.addon;
 const assert = require('assert');
 
 
@@ -24,6 +23,7 @@ const assert = require('assert');
 
 const soon = global.setImmediate || process.nextTick
 
+// eslint-disable-next-line no-unused-vars
 function psoon () {
   return new Promise((resolve, reject) => {
     soon(() => resolve())
@@ -115,8 +115,8 @@ describe('custom (without native bindings present)', function () {
     assert(ao.traceId === undefined);
     assert(ao.lastEvent === undefined);
     assert(ao.lastSpan === undefined);
-    assert(ao.requestStore && typeof ao.requestStore.get === 'function');
-    assert(typeof ao.resetRequestStore === 'function');
+    assert(ao.tContext && typeof ao.tContext.get === 'function');
+    assert(typeof ao.resetTContext === 'function');
     assert(ao.clsCheck() === false);
     assert(ao.stack() === '');
     assert(ao.bind('x') === 'x');
@@ -127,7 +127,8 @@ describe('custom (without native bindings present)', function () {
     assert(ao.readyToSample() === false);
     assert(ao.getTraceSettings().doSample === false);
     assert(ao.sampling() === false);
-    assert(ao.stringToMetadata('') instanceof aob.Metadata);
+    assert(ao.stringToMetadata('') === null);
+    assert(ao.stringToMetadata('2BBC99C9E42EDB57F0B6746B41DB181B5D9B812E8E78549D538F67DAAC01') instanceof ao.MB);
     assert(ao.patchResponse('x') === undefined);
     assert(ao.addResponseFinalizer('x') === undefined);
     assert(ao.traceId === undefined);

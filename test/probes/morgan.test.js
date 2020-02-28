@@ -73,11 +73,11 @@ class TestStream extends EventEmitter {
 // get a trace string via a different function than the logging insertion uses.
 //
 function getTraceIdString () {
-  const topSpan = ao.requestStore.get('topSpan');
+  const topSpan = ao.tContext.get('topSpan');
   if (!topSpan) {
     return `${'0'.repeat(40)}-0`;
   }
-  const firstEvent = topSpan.events.entry.event;
+  const firstEvent = topSpan.events.entry;
   // 2 task, 16 sample bit, 32 separators
   return firstEvent.toString(2 | 16 | 32);
 }
@@ -284,7 +284,7 @@ describe(`probes.morgan ${version}`, function () {
         return 'test-done';
       }
 
-      const xtrace = ao.addon.Metadata.makeRandom(0).toString()
+      const xtrace = ao.MB.makeRandom(0).toString()
       const result = ao.startOrContinueTrace(xtrace, spanName, test);
       expect(result).equal('test-done');
     })
@@ -340,13 +340,12 @@ describe(`probes.morgan ${version}`, function () {
   //
   it('mode=\'always\' should always insert a trace ID even if not tracing', function (done) {
     const traceId = getTraceIdString();
-    ao.Event.last = undefined;
+    ao.lastEvent = undefined;
 
     ao.cfg.insertTraceIdsIntoMorgan = 'always';
     logger = makeLogger();
     ao.traceMode = 0;
     ao.sampleRate = 0;
-    //console.log(ao.Event.last);
 
     logger(fakeReq, fakeRes, function (err) {
       expect(err).not.ok;

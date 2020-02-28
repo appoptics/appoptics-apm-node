@@ -13,7 +13,7 @@ describe('probes.bcrypt ' + pkg.version, function () {
     //ao.logLevelAdd('span')
   })
   after(function () {
-    //ao.requestStore.dumpCtx()
+    //ao.tContext.dumpCtx()
 
     endTest()
     ao.logLevel = prevll
@@ -29,13 +29,13 @@ describe('probes.bcrypt ' + pkg.version, function () {
       '',
       'test-bcrypt',
       function (cb) {
-        ao.requestStore.set(test, 'bar')
+        ao.tContext.set(test, 'bar')
         bcrypt.genSalt(10, function (err, salt) {
           bcrypt.hash(password, salt, function (err, hash) {
             bcrypt.compare(password, hash, function (err, res) {
               // the passwords should match
               res.should.equal(true)
-              const result = ao.requestStore.get(test)
+              const result = ao.tContext.get(test)
               // checking 'bar' against result prevents problems if
               // result is undefined.
               'bar'.should.equal(result, 'foo should equal bar')

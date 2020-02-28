@@ -44,7 +44,6 @@ const options = p === 'https' ? httpsOptions : {};
 describe(`probes.${p}`, function () {
   const ctx = {driver, p};
   let emitter
-  let realSampleTrace
   const previousHttpEnabled = ao.probes[p].enabled;
   const previousHttpClientEnabled = ao.probes[`${p}-client`].enabled;
   let clear
@@ -57,18 +56,14 @@ describe(`probes.${p}`, function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
     ao.g.testing(__filename)
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
   after(function () {
-    ao.loggers.debug(`enters ${ao.Span.entrySpanEnters} exits ${ao.Span.entrySpanExits}`)
+    const {spansTopSpanEnters, spansTopSpanExits} = ao.Span.getMetrics();
+    ao.loggers.debug(`enters ${spansTopSpanEnters} exits ${spansTopSpanExits}`);
   })
 
   //
@@ -143,7 +138,7 @@ describe(`probes.${p}`, function () {
     const conf = ao.probes[p];
 
     after(function () {
-      ao.resetRequestStore();
+      ao.resetTContext();
     });
 
     // it's possible for a local UDP send to fail but oboe doesn't report
@@ -201,7 +196,7 @@ describe(`probes.${p}`, function () {
         res.end('done')
       })
 
-      const md = addon.Metadata.makeRandom(1)
+      const md = ao.MB.makeRandom(1)
       const origin = new ao.Event('span-name', 'label-name', md)
 
       helper.doChecks(emitter, [
@@ -262,7 +257,7 @@ describe(`probes.${p}`, function () {
         res.end('done')
       })
 
-      const originMetadata = addon.Metadata.makeRandom(1)
+      const originMetadata = ao.MB.makeRandom(1)
       const origin = new ao.Event('span-name', 'label-name', originMetadata)
       const xtrace = origin.toString().slice(0, 42) + '0'.repeat(16) + '01'
 
@@ -409,8 +404,8 @@ describe(`probes.${p}`, function () {
     // Verify query param filtering support
     //
     it('should support query param filtering', function (done) {
-      if (ao.Event.last) {
-        ao.loggers.debug(`${p}.test: before creating server lastEvent = %e`, ao.Event.last);
+      if (ao.lastEvent) {
+        ao.loggers.debug(`${p}.test: before creating server lastEvent = %e`, ao.lastEvent);
       }
 
       conf.includeRemoteUrlParams = false
@@ -601,7 +596,7 @@ describe(`probes.${p}`, function () {
     const conf = ao.probes[`${p}-client`];
 
     after(function () {
-      ao.resetRequestStore();
+      ao.resetTContext();
     });
 
     it(`should trace ${p} request`, function (done) {

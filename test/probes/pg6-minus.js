@@ -41,7 +41,6 @@ if (canNative) {
 
 describe('probes.pg ' + pkg.version, function () {
   let emitter
-  let realSampleTrace
 
   it('should sanitize SQL by default', function () {
     conf.should.have.property('sanitizeSql', true)
@@ -56,16 +55,9 @@ describe('probes.pg ' + pkg.version, function () {
     ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
     ao.probes.fs.enabled = false
-
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
-
     ao.g.testing(__filename)
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     ao.probes.fs.enabled = true
     emitter.close(done)
   })

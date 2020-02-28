@@ -50,10 +50,10 @@ describe(`probes.restify ${pkg.version}`, function () {
   after(function (done) {
     emitter.close(done)
     // turn on if desired for testing context
-    if (false && ao.requestStore.getMetrics) {
+    if (false && ao.tContext.getMetrics) {
       process.on('exit', function () {
-        ao.requestStore._hook.disable();
-        interpretMetrics(ao.requestStore.getMetrics());
+        ao.tContext._hook.disable();
+        interpretMetrics(ao.tContext.getMetrics());
       })
     }
     ao.probes.fs.enabled = fsState

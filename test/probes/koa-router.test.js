@@ -16,7 +16,6 @@ try {
 describe('probes/koa-router ' + pkg.version, function () {
   let emitter
   const tests = canGenerator && require('./koa')
-  let realSampleTrace
 
   //
   // Intercept appoptics messages for analysis
@@ -27,17 +26,10 @@ describe('probes/koa-router ' + pkg.version, function () {
     ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
 
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
-
     ao.g.testing(__filename)
   })
   after(function (done) {
     ao.probes.fs.enabled = true
-
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 

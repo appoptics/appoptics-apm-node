@@ -29,7 +29,6 @@ if (oracledb && host && database && config.user && config.password) {
 
 descValid(`probes.oracledb ${pkg.version}`, function () {
   let emitter
-  let realSampleTrace
   let lastConnection;
 
   //
@@ -40,15 +39,9 @@ descValid(`probes.oracledb ${pkg.version}`, function () {
     ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
 
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
-
     ao.g.testing(__filename)
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 

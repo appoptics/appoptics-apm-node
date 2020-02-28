@@ -46,10 +46,10 @@ describe('probes.amqplib ' + pkg.version, function () {
   // Intercept appoptics messages for analysis
   //
   before(function (done) {
-    emitter = helper.appoptics(done)
-    ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
-    ao.traceMode = 'always'
-    ao.g.testing(__filename)
+    ao.sampleRate = ao.addon.MAX_SAMPLE_RATE;
+    ao.traceMode = 'always';
+    ao.g.testing(__filename);
+    emitter = helper.appoptics(done);
   })
   after(function (done) {
     emitter.close(done)

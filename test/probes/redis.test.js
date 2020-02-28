@@ -19,7 +19,6 @@ const client = redis.createClient(addr.port, addr.host, {})
 describe('probes.redis ' + pkg.version, function () {
   const ctx = {redis: client}
   let emitter
-  let realSampleTrace
 
   //
   // Intercept appoptics messages for analysis
@@ -28,16 +27,9 @@ describe('probes.redis ' + pkg.version, function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
-
     ao.g.testing(__filename)
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 

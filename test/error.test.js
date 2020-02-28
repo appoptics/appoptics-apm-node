@@ -12,7 +12,6 @@ describe('error', function () {
   const conf = {enabled: true}
   const error = new Error('nope')
   let emitter
-  let realSampleTrace
 
   function testSpan (span) {
     return span.descend('test')
@@ -41,13 +40,8 @@ describe('error', function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 
@@ -71,7 +65,7 @@ describe('error', function () {
   // Tests
   //
   it('should add error properties to event', function () {
-    const md = ao.addon.Metadata.makeRandom(1)
+    const md = ao.MB.makeRandom(1)
     const event = new Event('error-test', 'info', md)
     const err = new Error('test')
     event.error = err
@@ -82,7 +76,7 @@ describe('error', function () {
   })
 
   it('should set error multiple times (keeping last)', function () {
-    const md = ao.addon.Metadata.makeRandom(1)
+    const md = ao.MB.makeRandom(1)
     const event = new Event('error-test', 'info', md)
     const first = new Error('first')
     const second = new Error('second')

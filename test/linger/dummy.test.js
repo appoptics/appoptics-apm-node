@@ -6,10 +6,10 @@ const {ao, startTest, endTest} = require('../1.test-common.js')
 describe('probes/dummy vz.z.z', function () {
   before(function () {
     startTest(__filename, {customFormatter: 'terse'})
-    //ao.requestStore.dumpCtx()
+    //ao.tContext.dumpCtx()
   })
   after(function () {
-    //ao.requestStore.dumpCtx()
+    //ao.tContext.dumpCtx()
     endTest()
   })
   beforeEach(function () {

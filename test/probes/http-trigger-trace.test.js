@@ -202,7 +202,7 @@ function makeSignedHeaders (test) {
 
   // add an xtrace with appropriate sample bit if requezted
   if ('xtrace' in test) {
-    headers['x-trace'] = ao.addon.Metadata.makeRandom(test.xtrace).toString();
+    headers['x-trace'] = ao.MB.makeRandom(test.xtrace).toString();
   }
 
   return headers;
@@ -263,7 +263,7 @@ function wrapGTS () {
     settings.message = 'rate-exceeded';
     settings.doSample = false;
     settings.doMetrics = false;
-    settings.metadata.setSampleFlagTo(0);
+    settings.metadata.assignFlags(0);
     return settings;
   }
 }
@@ -314,7 +314,8 @@ describe('probes.http trigger-trace', function () {
     emitter.close(done)
   })
   after(function () {
-    testdebug(`enters ${ao.Span.entrySpanEnters} exits ${ao.Span.entrySpanExits}`)
+    const {spansTopSpanEnters, spansTopSpanExits} = ao.Span.getMetrics();
+    ao.loggers.debug(`enters ${spansTopSpanEnters} exits ${spansTopSpanExits}`);
   })
 
   // from test/http.test.js
@@ -430,7 +431,7 @@ describe('probes.http trigger-trace', function () {
         expect(xtrace.length).equal(60);
         // if expecting
         if ('xtrace' in t) {
-          const mdSampleBit = +ao.addon.Metadata.sampleFlagIsSet(xtrace);
+          const mdSampleBit = ao.MB.stringToMetabuf(xtrace).getFlags();
           // if the signature is bad then the expected bit should be 0.
           const expectedBit = (t.sig === 'bad' || (t.ts && t.ts !== 'ts')) ? 0 : t.xtrace;
           expect(mdSampleBit).equal(expectedBit, 'returned x-trace header must have correct sample bit');

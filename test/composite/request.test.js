@@ -13,7 +13,6 @@ const expect = require('chai').expect;
 describe('probes.request', function () {
   const ctx = {driver: http, p: 'http'};
   let emitter
-  let realSampleTrace
 
   //
   // Intercept appoptics messages for analysis
@@ -22,13 +21,9 @@ describe('probes.request', function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
+
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 
@@ -132,7 +127,7 @@ describe('probes.request', function () {
         res.end('done')
       })
 
-      const origin = new ao.Event('span-name', 'label-name', addon.Metadata.makeRandom(1))
+      const origin = new ao.Event('span-name', 'label-name', ao.MB.makeRandom(1))
 
       helper.doChecks(emitter, [
         function (msg) {
@@ -165,7 +160,7 @@ describe('probes.request', function () {
         res.end('done')
       })
 
-      const origin = new ao.Event('span-name', 'label-name', addon.Metadata.makeRandom(1))
+      const origin = new ao.Event('span-name', 'label-name', ao.MB.makeRandom(1))
       const xtrace = origin.toString().slice(0, 42) + '0'.repeat(16) + '01'
 
       const logChecks = [

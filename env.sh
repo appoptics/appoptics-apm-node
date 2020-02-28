@@ -15,6 +15,11 @@ else
     AO_COLLECTOR=collector-stg.appoptics.com
 fi
 
+# you made need to change this if you use NODE_PATH already. this
+# allows node to find global modules implied in the agent development
+# environment, e.g., tap, mocha, etc.
+export NODE_PATH=${NVM_BIN}/../lib/node_modules
+
 if [[ -z "$ARG" ]]; then
     echo "source this script with an argument of docker, docker-scribe, bash,"
     echo "bash-testing, or travis\n"

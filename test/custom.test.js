@@ -79,14 +79,15 @@ describe('custom', function () {
   let main
 
   after(function () {
-    ao.loggers.debug(`enters ${ao.Span.entrySpanEnters} exits ${ao.Span.entrySpanExits}`)
+    const {spansTopSpanEnters, spansTopSpanExits} = ao.Span.getMetrics();
+    ao.loggers.debug(`enters ${spansTopSpanEnters} exits ${spansTopSpanExits}`);
   })
 
   beforeEach(function () {
     // provide up to 100 tests with a unique prefix
     pfx = ('0' + counter++).slice(-2)
     main = `${pfx}-test`
-    if (this.currentTest.title === 'x-should continue from previous trace id') {
+    if (this.currentTest.title === 'x-should include backtrace when collectBacktraces is on') {
       ao.logLevelAdd('test:messages,event:*')
     } else {
       ao.logLevelRemove('test:messages,event:*')
@@ -252,11 +253,11 @@ describe('custom', function () {
   })
 
   it('should include backtrace when collectBacktraces is on', function (done) {
-    helper.test(emitter, function (done) {
+    helper.test(emitter, function (tdone) {
       ao.instrument(main, soon, {
         collectBacktraces: true,
         enabled: true
-      }, done)
+      }, tdone)
     }, [
       function (msg) {
         msg.should.have.property('Layer', main)
@@ -271,10 +272,10 @@ describe('custom', function () {
   })
 
   it('should skip when not enabled', function (done) {
-    helper.test(emitter, function (done) {
+    helper.test(emitter, function (tdone) {
       ao.instrument(main, soon, {
         enabled: false
-      }, done)
+      }, tdone)
     }, [], done)
   })
 
@@ -282,13 +283,13 @@ describe('custom', function () {
     const data = {Foo: 'bar'}
     let last
 
-    helper.test(emitter, function (done) {
+    helper.test(emitter, function (tdone) {
       ao.instrument(function (span) {
         return {name: main}
       }, function (callback) {
         ao.reportInfo(data)
         callback()
-      }, conf, done)
+      }, conf, tdone)
     }, [
       function (msg) {
         msg.should.have.property('Layer', main)
@@ -313,6 +314,8 @@ describe('custom', function () {
   it('should link info events correctly', function (done) {
     let outer
     const inner = []
+    const spanToEvents = new Map();
+
 
     const checks = [
       // Outer entry
@@ -330,7 +333,7 @@ describe('custom', function () {
       },
       // Inner info #1 (async)
       function (msg) {
-        msg.should.have.property('X-Trace', inner[0].events.internal[0].toString())
+        msg.should.have.property('X-Trace', spanToEvents.get(inner[0])[0].toString())
         msg.should.have.property('Edge', inner[0].events.entry.opId)
         msg.should.not.have.property('Layer')
         msg.should.have.property('Label', 'info')
@@ -338,7 +341,7 @@ describe('custom', function () {
       },
       // Outer info
       function (msg) {
-        msg.should.have.property('X-Trace', outer.events.internal[0].toString())
+        msg.should.have.property('X-Trace', spanToEvents.get(outer)[0].toString())
         msg.should.have.property('Edge', outer.events.entry.opId)
         msg.should.not.have.property('Layer')
         msg.should.have.property('Label', 'info')
@@ -347,13 +350,13 @@ describe('custom', function () {
       // Inner entry #2 (async)
       function (msg) {
         msg.should.have.property('X-Trace', inner[1].events.entry.toString())
-        msg.should.have.property('Edge', outer.events.internal[0].opId)
+        msg.should.have.property('Edge', spanToEvents.get(outer)[0].opId)
         msg.should.have.property('Layer', 'inner-2')
         msg.should.have.property('Label', 'entry')
       },
       // Inner info #2 (async)
       function (msg) {
-        msg.should.have.property('X-Trace', inner[1].events.internal[0].toString())
+        msg.should.have.property('X-Trace', spanToEvents.get(inner[1])[0].toString())
         msg.should.have.property('Edge', inner[1].events.entry.opId)
         msg.should.not.have.property('Layer')
         msg.should.have.property('Label', 'info')
@@ -362,21 +365,21 @@ describe('custom', function () {
       // Outer exit
       function (msg) {
         msg.should.have.property('X-Trace', outer.events.exit.toString())
-        msg.should.have.property('Edge', outer.events.internal[0].opId)
+        msg.should.have.property('Edge', spanToEvents.get(outer)[0].opId)
         msg.should.have.property('Layer', 'link-test')
         msg.should.have.property('Label', 'exit')
       },
       // Inner exit #1 (async)
       function (msg) {
         msg.should.have.property('X-Trace', inner[0].events.exit.toString())
-        msg.should.have.property('Edge', inner[0].events.internal[0].opId)
+        msg.should.have.property('Edge', spanToEvents.get(inner[0])[0].opId)
         msg.should.have.property('Layer', 'inner-0')
         msg.should.have.property('Label', 'exit')
       },
       // Inner exit #2 (async)
       function (msg) {
         msg.should.have.property('X-Trace', inner[1].events.exit.toString())
-        msg.should.have.property('Edge', inner[1].events.internal[0].opId)
+        msg.should.have.property('Edge', spanToEvents.get(inner[1])[0].opId)
         msg.should.have.property('Layer', 'inner-2')
         msg.should.have.property('Label', 'exit')
       },
@@ -394,7 +397,12 @@ describe('custom', function () {
 
       function makeInner (data, done) {
         const name = 'inner-' + data.Index
-        const span = Span.last.descend(name)
+        const span = ao.lastSpan.descend(name)
+        const events = [];
+        spanToEvents.set(span, events);
+        span.events.internal.push = function (event) {
+          events.push(event);
+        };
         inner.push(span)
         span.run(function (wrap) {
           const delayed = wrap(done)
@@ -405,7 +413,12 @@ describe('custom', function () {
         })
       }
 
-      outer = Span.last.descend('link-test')
+      outer = ao.lastSpan.descend('link-test')
+      const events = [];
+      spanToEvents.set(outer, events);
+      outer.events.internal.push = function (event) {
+        events.push(event);
+      };
       outer.run(function () {
         const cb = after(2, done)
         makeInner({
@@ -639,7 +652,7 @@ describe('custom', function () {
     }
 
     const test = 'foo'
-    const xtrace = ao.addon.Metadata.makeRandom(0).toString()
+    const xtrace = ao.MB.makeRandom(0).toString()
     const res = ao.startOrContinueTrace(xtrace, main, function () {return test}, conf)
 
     res.should.equal(test)
@@ -781,7 +794,7 @@ describe('custom', function () {
       'x-previous',                 // span name
       function (pcb) {              // runner function, creates a new span
         ao.startOrContinueTrace(
-          Span.last.events.entry.toString(),    // continue from the last span's id.
+          ao.lastSpan.events.entry.toString(),    // continue from the last span's id.
           () => {
             return {
               name: main,
@@ -877,16 +890,16 @@ describe('custom', function () {
               entry.toString(),     // xtrace-id
               'inner',              // span name
               function (cb) {       // runner pseudo-async
-                ao.requestStore.set('linger', true);
+                ao.tContext.set('linger', true);
                 soon(function () {
-                  expect(ao.requestStore.get('linger')).equal(true);
+                  expect(ao.tContext.get('linger')).equal(true);
                   // Verify newContext calls DO NOT continue when no xtrace
                   ao.startOrContinueTrace(
                     //entry.toString(),     // xtrace-id (supply this to continue)
                     '',
                     'new-trace',          // span name
                     function (cb) {       // runner pseudo-async
-                      expect(ao.requestStore.get('linger')).not.exist;
+                      expect(ao.tContext.get('linger')).not.exist;
                       cb()
                     },
                     Object.assign({forceNewTrace: true}, conf),                 // config
@@ -914,7 +927,7 @@ describe('custom', function () {
       return makeSettings({source: 0, rate: 0})
     }
 
-    // because a span is created and entered then Span.last & Event.last
+    // because a span is created and entered then ao.lastSpan & ao.lastEvent
     // are cleared ao.startOrContinueTrace creates a new context, so the
     // next two errors should be generated.
     const logChecks = [
@@ -926,7 +939,7 @@ describe('custom', function () {
     helper.test(
       emitter,
       function (done) {             // test function
-        Span.last = Event.last = null
+        ao.lastSpan = ao.lastEvent = null;
         ao.startOrContinueTrace(null, 'sample-properly', setImmediate, conf, done)
       },
       [],                           // checks
@@ -956,12 +969,12 @@ describe('custom', function () {
   })
 
   // it should handle bad bind arguments gracefully and issue warnings.
-  it('should bind functions to requestStore', function () {
-    const bind = ao.requestStore.bind
+  it('should bind functions to tContext', function () {
+    const bind = ao.tContext.bind
     let threw = false
     let called = false
 
-    ao.requestStore.bind = function () {
+    ao.tContext.bind = function () {
       called = true
     }
 
@@ -989,17 +1002,17 @@ describe('custom', function () {
       threw = true
     }
 
-    ao.requestStore.bind = bind
+    ao.tContext.bind = bind
 
     threw.should.equal(false)
   })
 
-  it('should bind emitters to requestStore', function () {
-    const bindEmitter = ao.requestStore.bindEmitter
+  it('should bind emitters to tContext', function () {
+    const bindEmitter = ao.tContext.bindEmitter
     let threw = false
     let called = false
 
-    ao.requestStore.bindEmitter = function () {
+    ao.tContext.bindEmitter = function () {
       called = true
     }
 
@@ -1028,7 +1041,7 @@ describe('custom', function () {
       threw = true
     }
 
-    ao.requestStore.bindEmitter = bindEmitter
+    ao.tContext.bindEmitter = bindEmitter
 
     threw.should.equal(false)
   })
@@ -1084,7 +1097,7 @@ describe('custom', function () {
     }
 
     const test = 'foo'
-    const xtrace = ao.addon.Metadata.makeRandom(0).toString()
+    const xtrace = ao.MB.makeRandom(0).toString()
     const res = ao.startOrContinueTrace(
       xtrace,
       main,                          // span name

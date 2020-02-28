@@ -11,7 +11,6 @@ const makeSettings = helper.makeSettings
 
 describe('span', function () {
   let emitter
-  let realSampleTrace
   let clear
 
   //
@@ -21,13 +20,8 @@ describe('span', function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
   afterEach(function () {
@@ -160,7 +154,7 @@ describe('span', function () {
     delete outer.topSpan
 
     outer.run(function () {
-      inner = Span.last.descend('inner', innerData)
+      inner = ao.lastSpan.descend('inner', innerData)
       inner.run(function () {})
     })
   })
@@ -198,7 +192,7 @@ describe('span', function () {
     delete outer.topSpan
 
     outer.run(function () {
-      inner = Span.last.descend('inner', innerData)
+      inner = ao.lastSpan.descend('inner', innerData);
       inner.run(function (wrap) {
         const delayed = wrap(function (err, res) {
           should.not.exist(err)
@@ -250,7 +244,7 @@ describe('span', function () {
         should.exist(res)
         res.should.equal('foo')
 
-        inner = Span.last.descend('inner', innerData)
+        inner = ao.lastSpan.descend('inner', innerData);
         inner.run(function () {
 
         })
@@ -586,7 +580,7 @@ describe('span', function () {
 
     helper.doChecks(emitter, checks, done)
 
-    ao.requestStore.run(function () {
+    ao.tContext.run(function () {
       span.enter()
       const sub1 = span.descend('inner-1');
       sub1.run(function () {                            // inner 1 entry

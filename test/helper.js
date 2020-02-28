@@ -8,7 +8,7 @@ ao.skipSample = true
 
 const Emitter = require('events').EventEmitter
 const extend = require('util')._extend
-const bson = require('bson')
+const BSON = require('bson')
 const dgram = require('dgram')
 const https = require('https')
 const http = require('http')
@@ -22,7 +22,7 @@ Error.stackTraceLimit = 25
 const log = ao.loggers
 
 exports.clsCheck = function () {
-  const c = ao.requestStore
+  const c = ao.tContext
   if (!c || !c.active) {
     throw new Error('CLS: NO ACTIVE ao-request-store NAMESPACE')
   }
@@ -67,8 +67,6 @@ if (['false', 'f', '0', 'n', 'no'].indexOf(env.AO_TEST_SHOW_LOGS) >= 0) {
   ao.logLevel = 'none'
 }
 
-const BSON = new bson.BSONPure.BSON()
-
 let udpPort = 7832
 
 if (process.env.APPOPTICS_REPORTER_UDP) {
@@ -101,7 +99,12 @@ exports.appoptics = function (done) {
   server.on('error', emitter.emit.bind(emitter, 'error'))
   server.on('message', function (msg) {
     const port = server.address().port
-    const parsed = BSON.deserialize(msg)
+    const parsed = BSON.deserialize(msg, {promoteBuffers: true});
+    for (const key in parsed) {
+      if (parsed[key] instanceof Buffer) {
+        parsed[key] = parsed[key].toString('utf8');
+      }
+    }
     log.test.messages('mock appoptics (port ' + port + ') received', parsed)
     if (emitter.log) {
       console.log(parsed)     // eslint-disable-line no-console
@@ -276,8 +279,12 @@ exports.test = function (emitter, test, validations, done) {
     exports.doChecks(emitter, validations, done)
   }
 
-  ao.requestStore.run(function () {
-    const template = {doSample: ao.traceMode === 'enabled', doMetrics: ao.traceMode === 'enabled'};
+  ao.tContext.run(function () {
+    const template = {
+      doSample: ao.traceMode === 'enabled',
+      doMetrics: ao.traceMode === 'enabled',
+      metadata: ao.MB.makeRandom(ao.traceMode === 'enabled'),
+    };
     const span = ao.Span.makeEntrySpan('outer', exports.makeSettings(template))
     // span.async = true
     log.test.span('helper.test outer: %l', span)

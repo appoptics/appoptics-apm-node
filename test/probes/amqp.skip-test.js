@@ -1,11 +1,11 @@
-var helper = require('../helper')
-var ao = helper.ao
-var addon = ao.addon
+'use strict';
 
-var should = require('should')
-var amqp = require('amqp')
-var pkg = require('amqp/package')
-var db_host = process.env.AO_TEST_RABBITMQ_3_5 || 'rabbitmq:5672'
+const helper = require('../helper')
+const ao = helper.ao
+
+const amqp = require('amqp')
+const pkg = require('amqp/package')
+const db_host = process.env.AO_TEST_RABBITMQ_3_5 || 'rabbitmq:5672'
 
 
 if (helper.skipTest(module.filename)) {
@@ -13,11 +13,8 @@ if (helper.skipTest(module.filename)) {
 }
 
 describe('probes.amqp ' + pkg.version, function () {
-  var emitter
-  var ctx = {}
-  var client
-  var db
-  var realSampleTrace
+  let emitter
+  let client
 
   // increase timeout for travis-ci.
   this.timeout(10000)
@@ -25,7 +22,7 @@ describe('probes.amqp ' + pkg.version, function () {
   //
   // Define some general message checks
   //
-  var checks = {
+  const checks = {
     entry: function (msg) {
       msg.should.have.property('Layer', 'amqp')
       msg.should.have.property('Label', 'entry')
@@ -58,13 +55,8 @@ describe('probes.amqp ' + pkg.version, function () {
     emitter = helper.appoptics(done)
     ao.sampleRate = ao.addon.MAX_SAMPLE_RATE
     ao.traceMode = 'always'
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return { sample: true, source: 6, rate: ao.sampleRate }
-    }
   })
   after(function (done) {
-    ao.addon.Context.sampleTrace = realSampleTrace
     emitter.close(done)
   })
 
@@ -72,9 +64,9 @@ describe('probes.amqp ' + pkg.version, function () {
   // Create a connection for the tests to use
   //
   beforeEach(function (done) {
-    var parts = db_host.split(':')
-    var host = parts.shift()
-    var port = parts.shift()
+    const parts = db_host.split(':')
+    const host = parts.shift()
+    const port = parts.shift()
 
     client = amqp.createConnection({
       host: host,
@@ -101,11 +93,11 @@ describe('probes.amqp ' + pkg.version, function () {
       ao.instrument('fake', function () { })
       done()
     }, [
-        function (msg) {
-          msg.should.have.property('Label').oneOf('entry', 'exit'),
-            msg.should.have.property('Layer', 'fake')
-        }
-      ], done)
+      function (msg) {
+        msg.should.have.property('Label').oneOf('entry', 'exit'),
+        msg.should.have.property('Layer', 'fake')
+      }
+    ], done)
   })
 
   //
@@ -113,7 +105,7 @@ describe('probes.amqp ' + pkg.version, function () {
   //
   it('should support confirm exchanges', function (done) {
     helper.test(emitter, function (done) {
-      var ex = client.exchange('test', {
+      const ex = client.exchange('test', {
         confirm: true
       }, function () {
         ex.publish('message', {
@@ -139,8 +131,9 @@ describe('probes.amqp ' + pkg.version, function () {
 
   it('should support no-confirm exchanges', function (done) {
     helper.test(emitter, function (done) {
-      var ex = client.exchange('test', {}, function () {
-        var task = ex.publish('message', {
+      const ex = client.exchange('test', {}, function () {
+        // eslint-disable-next-line no-unused-vars
+        const task = ex.publish('message', {
           foo: 'bar'
         })
         done()
@@ -160,13 +153,14 @@ describe('probes.amqp ' + pkg.version, function () {
 
   it('should bind event listeners', function (done) {
     helper.test(emitter, function (done) {
-      var q = client.queue('node-default-exchange', function() {
-        q.bind("#")
+      const q = client.queue('node-default-exchange', function () {
+        q.bind('#')
 
-        q.on('queueBindOk', function() {
+        q.on('queueBindOk', function () {
           q.on('basicConsumeOk', function () {
-            var ex = client.exchange('test', {}, function () {
-              var task = ex.publish('message', {
+            const ex = client.exchange('test', {}, function () {
+              // eslint-disable-next-line no-unused-vars
+              const task = ex.publish('message', {
                 foo: 'bar'
               })
               done()
@@ -194,13 +188,13 @@ describe('probes.amqp ' + pkg.version, function () {
   })
 
   it('should report jobs', function (done) {
-    var id
+    let id;
     helper.test(emitter, function (done) {
-      var ex = client.exchange('exchange', { type: 'fanout' })
+      const ex = client.exchange('exchange', {type: 'fanout'});
       client.queue('queue', function (q) {
         q.bind(ex, '*')
 
-        q.subscribe({ ack: true }, function myJob (a, b, c, msg) {
+        q.subscribe({ack: true}, function myJob (a, b, c, msg) {
           setImmediate(function () {
             msg.acknowledge()
             done()
@@ -240,13 +234,13 @@ describe('probes.amqp ' + pkg.version, function () {
   })
 
   it('should properly report auto-acked jobs', function (done) {
-    var id
+    let id;
     helper.test(emitter, function (done) {
-      var ex = client.exchange('exchange', { type: 'fanout' })
+      const ex = client.exchange('exchange', {type: 'fanout'});
       client.queue('queue', function (q) {
         q.bind(ex, '')
 
-        q.subscribe({ ack: false }, function myJob () {
+        q.subscribe({ack: false}, function myJob () {
           done()
         })
 
@@ -283,11 +277,11 @@ describe('probes.amqp ' + pkg.version, function () {
   })
 
   it('should create entry spans for jobs', function (done) {
-    var ex = client.exchange('exchange', { type: 'fanout' })
+    const ex = client.exchange('exchange', {type: 'fanout'});
     client.queue('queue', function (q) {
       q.bind(ex, '')
 
-      q.subscribe({ ack: false }, function myJob () {})
+      q.subscribe({ack: false}, function myJob () {});
 
       ex.publish('message', {
         foo: 'bar'
@@ -311,14 +305,14 @@ describe('probes.amqp ' + pkg.version, function () {
   })
 
   it('should include SourceTrace in externally created jobs', function (done) {
-    var innerDone
-    var id
+    let innerDone;
+    let id;
 
-    var ex = client.exchange('exchange', { type: 'fanout' })
+    const ex = client.exchange('exchange', {type: 'fanout'});
     client.queue('queue', function (q) {
       q.bind(ex, '*')
 
-      q.subscribe({ ack: true }, function myJob (a, b, c, msg) {
+      q.subscribe({ack: true}, function myJob (a, b, c, msg) {
         setImmediate(function () {
           msg.acknowledge()
           innerDone()
@@ -361,10 +355,11 @@ describe('probes.amqp ' + pkg.version, function () {
   })
 
   it('should bind event listeners even for instances constructed outside the request', function (done) {
-    var next = helper.after(2, function () {
+    const next = helper.after(2, function () {
       helper.test(emitter, function (done) {
         q.on('basicConsumeOk', function () {
-          var task = ex.publish('message', {
+          // eslint-disable-next-line no-unused-vars
+          const task = ex.publish('message', {
             foo: 'bar'
           })
           done()
@@ -386,16 +381,16 @@ describe('probes.amqp ' + pkg.version, function () {
       ], done)
     })
 
-    var ex = client.exchange('test', {}, next)
-    var q = client.queue('node-default-exchange', function () {
-      q.bind("#")
+    const ex = client.exchange('test', {}, next);
+    const q = client.queue('node-default-exchange', function () {
+      q.bind('#');
 
       q.on('queueBindOk', next)
     })
   })
 
   it('should not fail to patch wrong structures', function () {
-    var patch = require('../../dist/probes/amqp')
+    const patch = require('../../dist/probes/amqp');
 
     // Create blank constructor
     function Connection () {}
@@ -403,21 +398,21 @@ describe('probes.amqp ' + pkg.version, function () {
     function Queue () {}
 
     // Create detached prototype
-    var connProto = {
+    const connProto = {
       connect: function () {},
-      exchange: function () { return new Exchange },
-      queue: function () { return new Queue }
-    }
-    var exProto = {
+      exchange: function () {return new Exchange()},
+      queue: function () {return new Queue()}
+    };
+    const exProto = {
       publish: function () {}
     }
-    var emProto = {
+    const emProto = {
       addListener: function () {},
       on: function () {}
     }
 
     // Create empty module
-    var mod = {}
+    const mod = {}
 
     // Validate it doesn't crash on empty objects
     patch(mod)
@@ -426,13 +421,13 @@ describe('probes.amqp ' + pkg.version, function () {
     mod.Connection = Connection
 
     // Apply patch again
-    var patched = patch(mod)
+    let patched = patch(mod);
 
     // Should still have the Connection constructor
     patched.Connection.should.equal(Connection)
 
     // Should not have added functions to a constructor with blank prototype
-    var after = patched.Connection.prototype
+    const after = patched.Connection.prototype;
     Object.keys(connProto).forEach(function (key) {
       after.should.not.have.property(key)
     })
@@ -450,7 +445,7 @@ describe('probes.amqp ' + pkg.version, function () {
     addProto(Queue, emProto)
 
     function validateProto (cons, proto) {
-      var after = cons.prototype
+      const after = cons.prototype;
       Object.keys(proto).forEach(function (key) {
         after.should.have.property(key)
         after[key].should.not.equal(proto[key])
@@ -458,12 +453,12 @@ describe('probes.amqp ' + pkg.version, function () {
     }
 
     // Patch full structure
-    var patched = patch(mod)
+    patched = patch(mod)
 
     // Use the structure to ensure delayed patches are triggered
-    var con = new Connection
-    var ex = con.exchange()
-    var q = con.queue()
+    const con = new Connection();
+    const ex = con.exchange();
+    const q = con.queue();
 
     // Validate full structure has had functions replaced
     validateProto(Connection, connProto)

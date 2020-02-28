@@ -40,7 +40,6 @@ try {
 
 describe(`probes.pg6+ ${pkg.version} pg-native ${nativeVer}`, function () {
   let emitter
-  let realSampleTrace
   const ctx = {ao, tName, addr}
 
   it('should sanitize SQL by default', function () {
@@ -53,8 +52,8 @@ describe(`probes.pg6+ ${pkg.version} pg-native ${nativeVer}`, function () {
   //
   before(function (done) {
     if (ao.lastEvent) {
-      const c = ao.requestStore.active ? ao.requestStore.active.id : null
-      ao.loggers.debug(`id ${c} event.last at startup %e`, ao.lastEvent)
+      const c = ao.tContext.active ? ao.tContext.active.id : null
+      ao.loggers.debug(`id ${c} ao.lastEvent at startup %e`, ao.lastEvent)
     }
 
     emitter = helper.appoptics(done)
@@ -70,15 +69,9 @@ describe(`probes.pg6+ ${pkg.version} pg-native ${nativeVer}`, function () {
   // basic test setup and teardown
   //
   before(function () {
-    realSampleTrace = ao.addon.Context.sampleTrace
-    ao.addon.Context.sampleTrace = function () {
-      return {sample: true, source: 6, rate: ao.sampleRate}
-    }
-
     ao.g.testing(__filename)
   })
   after(function () {
-    ao.addon.Context.sampleTrace = realSampleTrace
     ao.probes.fs.enabled = true
   })
 
@@ -86,7 +79,7 @@ describe(`probes.pg6+ ${pkg.version} pg-native ${nativeVer}`, function () {
   // remove any leftover context
   //
   after(function () {
-    ao.resetRequestStore();
+    ao.resetTContext();
   });
 
   //
