@@ -22,7 +22,12 @@ describe('span', function () {
   before(function (done) {
     emitter = helper.appoptics(done)
     ao.sampleRate = addon.MAX_SAMPLE_RATE
-    ao.traceMode = 'always'
+    ao.traceMode = 'always';
+    // clear these because other tests may have been run
+    // before this suite.
+    Object.keys(ao._stats.span).forEach(k => {
+      ao._stats.span[k] = 0;
+    });
   })
   after(function (done) {
     emitter.close(done)
@@ -359,7 +364,7 @@ describe('span', function () {
       {Layer: name, Label: 'exit'},
     ];
 
-    const getResults = setupMockEventSending(sequencing, {verbose: false});
+    const getResults = setupMockEventSending(sequencing, {verbose: true});
 
     span.runAsync(function (wrap) {
       const cb = wrap(function (err, res) {
@@ -1060,7 +1065,7 @@ describe('span', function () {
     const stats = ao._stats.span;
     expect(stats.topSpansActive).equal(0, 'no topSpans should be active');
     expect(stats.otherSpansActive).equal(0, 'no spans should be active');
-    expect(stats.totalCreated).equal(45, 'total spans created should be correct');
+    expect(stats.totalCreated).equal(64, 'total spans created should be correct');
     expect(stats.topSpansCreated).equal(27, 'total traces created should be correct');
   })
 
