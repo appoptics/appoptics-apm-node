@@ -15,6 +15,7 @@ const makeSettings = helper.makeSettings
 describe('span', function () {
   let emitter
   let clear
+  const logLevel = ao.logLevel;
 
   //
   // Intercept appoptics messages for analysis
@@ -37,6 +38,7 @@ describe('span', function () {
       clear()
       clear = undefined
     }
+    ao.logLevel = logLevel;
   })
   //
   // this test exists only to fix a problem with oboe not reporting a UDP
@@ -298,7 +300,7 @@ describe('span', function () {
       }
       if (options.verbose) {
         // eslint-disable-next-line no-console
-        console.log('checking', sequencing[counter], '==', event);
+        console.log(event, 'should equal', sequencing[counter]);
       }
 
       try {
@@ -335,8 +337,8 @@ describe('span', function () {
 
     const sequencing = [
       {Layer: 'outer', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
       {Layer: 'outer', Label: 'exit'},
     ];
 
@@ -353,19 +355,21 @@ describe('span', function () {
   });
 
   it('should skeletonize unsampled async boundaries', function (done) {
+    ao.logLevel = logLevel + ',event:*,span';
     const name = 'test-async-boundaries';
     const settings = makeSettings({doSample: false});
     const span = Span.makeEntrySpan(name, settings);
 
     const sequencing = [
       {Layer: name, Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
       {Layer: name, Label: 'exit'},
     ];
 
     const getResults = setupMockEventSending(sequencing, {verbose: true});
 
+    span.debugIt = true;
     span.runAsync(function (wrap) {
       const cb = wrap(function (err, res) {
         expect(err).not.exist;
@@ -373,7 +377,7 @@ describe('span', function () {
         const {sendReportCalls, sendCalls, errors} = getResults();
         expect(sendReportCalls).equal(4);
         expect(sendCalls).equal(0);
-        expect(errors.length).equal(0, `${errors}`);
+        expect(errors.length).equal(0, `found\n${errors}`);
         done();
       });
 
@@ -395,8 +399,8 @@ describe('span', function () {
 
     const sequencing = [
       {Layer: name, Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
       {Layer: name, Label: 'exit'},
     ];
 
@@ -413,7 +417,7 @@ describe('span', function () {
     const {sendReportCalls, sendCalls, errors} = getResults();
     expect(sendReportCalls).equal(4);
     expect(sendCalls).equal(0);
-    expect(errors.length).equal(0, `${errors}`);
+    expect(errors.length).equal(0, `found\n${errors}`);
   });
 
   it('should skeletonize unsampled async span within sync spans', function (done) {
@@ -424,9 +428,9 @@ describe('span', function () {
     // completing first.
     const sequencing = [
       {Layer: name, Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'entry'},
       {Layer: name, Label: 'exit'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'exit'},
     ];
 
     const getResults = setupMockEventSending(sequencing, {verbose: false});
@@ -443,7 +447,7 @@ describe('span', function () {
           const {sendReportCalls, sendCalls, errors} = getResults();
           expect(sendReportCalls).equal(4);
           expect(sendCalls).equal(0);
-          expect(errors.length).equal(0, `${errors}`);
+          expect(errors.length).equal(0, `found\n${errors}`);
           done();
         })
 
@@ -463,8 +467,8 @@ describe('span', function () {
     const sequencing = [
       {Layer: name, Label: 'entry'},
       {Layer: name, Label: 'exit'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
     ];
 
     const getResults = setupMockEventSending(sequencing, {verbose: false});
@@ -483,7 +487,7 @@ describe('span', function () {
         const {sendReportCalls, sendCalls, errors} = getResults();
         expect(sendReportCalls).equal(4);
         expect(sendCalls).equal(0);
-        expect(errors.length).equal(0, `${errors}`);
+        expect(errors.length).equal(0, `found\n${errors}`);
         done();
       });
 
@@ -501,12 +505,12 @@ describe('span', function () {
 
     const sequencing = [
       {Layer: name, Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
-      {Layer: 'skeleton', Label: 'exit'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'exit'},
       {Layer: name, Label: 'exit'},
     ];
 
@@ -527,7 +531,7 @@ describe('span', function () {
     outer.run(digDeeper);
 
     const {sendReportCalls, sendCalls, errors} = getResults();
-    expect(errors.length).equal(0, `${errors}`);
+    expect(errors.length).equal(0, `found\n${errors}`);
     expect(sendReportCalls).equal(8);
     expect(sendCalls).equal(0);
 
@@ -541,12 +545,12 @@ describe('span', function () {
     const sequencing = [
       {Layer: name, Label: 'entry'},
       {Layer: name, Label: 'exit'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
-      {Layer: 'skeleton', Label: 'entry'},
-      {Layer: 'skeleton', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
+      {Layer: '__skeleton__', Label: 'entry'},
+      {Layer: '__skeleton__', Label: 'exit'},
     ];
 
     let resolver;
@@ -585,7 +589,7 @@ describe('span', function () {
 
     return p.then(() => {
       const {sendReportCalls, sendCalls, errors} = getResults();
-      expect(errors.length).equal(0, `${errors}`);
+      expect(errors.length).equal(0, `found\n${errors}`);
       expect(sendReportCalls).equal(8, 'sendReportCalls');
       expect(sendCalls).equal(0, 'send should never be called');
     });
@@ -599,14 +603,14 @@ describe('span', function () {
 
     const sequencing = [
       {Layer: name, Label: 'entry'},          // enter outer
-      {Layer: 'skeleton', Label: 'entry'},    // unconditional asyncDigDeeper
-      {Layer: 'skeleton', Label: 'exit'},     // exit unconditional asyncDigDeeper
-      {Layer: 'skeleton', Label: 'entry'},    // enter depth 1 sync
-      {Layer: 'skeleton', Label: 'entry'},    // enter depth 2 async
-      {Layer: 'skeleton', Label: 'exit'},     // exit depth 1 sync
-      {Layer: 'skeleton', Label: 'exit'},     // exit depth 2 async
-      {Layer: 'skeleton', Label: 'entry'},    // enter depth 3 sync
-      {Layer: 'skeleton', Label: 'exit'},     // exit depth 3 sync
+      {Layer: '__skeleton__', Label: 'entry'},    // unconditional asyncDigDeeper
+      {Layer: '__skeleton__', Label: 'exit'},     // exit unconditional asyncDigDeeper
+      {Layer: '__skeleton__', Label: 'entry'},    // enter depth 1 sync
+      {Layer: '__skeleton__', Label: 'entry'},    // enter depth 2 async
+      {Layer: '__skeleton__', Label: 'exit'},     // exit depth 1 sync
+      {Layer: '__skeleton__', Label: 'exit'},     // exit depth 2 async
+      {Layer: '__skeleton__', Label: 'entry'},    // enter depth 3 sync
+      {Layer: '__skeleton__', Label: 'exit'},     // exit depth 3 sync
       {Layer: name, Label: 'exit'},           // exit outer
     ];
 
@@ -703,7 +707,7 @@ describe('span', function () {
 
     return p.then(() => {
       const {sendReportCalls, sendCalls, errors} = getResults();
-      expect(errors.length).equal(0, `${errors}`);
+      expect(errors.length).equal(0, `found\n${errors}`);
       expect(sendReportCalls).equal(10, 'sendReportCalls');
       expect(sendCalls).equal(0, 'send should never be called');
     });

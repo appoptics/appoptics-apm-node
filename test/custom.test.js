@@ -475,6 +475,7 @@ describe('custom', function () {
         {level: 'error', message: 'ao.runInstrument found no span name or span-info function'},
         {level: 'error', message: 'ao.runInstrument failed to build span'},
         {level: 'error', message: 'ao.runInstrument failed to build span'},
+        {level: 'error', message: 'no name supplied to runInstrument by span-maker function'},
       ]
       helper.checkLogMessages(logChecks)
 
@@ -523,6 +524,7 @@ describe('custom', function () {
         {level: 'error', message: 'ao.runInstrument found no span name or span-info function'},
         {level: 'error', message: 'ao.runInstrument failed to build span'},
         {level: 'error', message: 'ao.runInstrument failed to build span'},
+        {level: 'error', message: 'no name supplied to runInstrument by span-maker function'},
       ]
       helper.checkLogMessages(logChecks)
 
